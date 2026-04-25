@@ -119,7 +119,8 @@ msg_good      BYTE 13,10,"  *** Good job! Keep practicing! ***",13,10,0
 msg_poor      BYTE 13,10,"  *** Keep going! You will improve! ***",13,10,0
 
 msg_again     BYTE 13,10,"  Play again? (Y/N): ",0
-msg_bye       BYTE 13,10,"  Thanks for playing. Goodbye, Commander!",13,10,0
+msg_bye       BYTE 13,10,"  Thanks for playing. Goodbye, Commander!",13,10
+              BYTE 13,10,"  Press any key to exit...",13,10,0
 
 ; ============================================================
 ;  RUNTIME VARIABLES
@@ -389,6 +390,14 @@ CompareStrings ENDP
 ; ============================================================
 main PROC
 
+    ; Move cursor to absolute top-left first, THEN clear.
+    ; Without GotoXY, Clrscr only clears from wherever the cursor
+    ; currently sits (e.g. after compilation output), leaving old
+    ; text visible above. GotoXY(0,0) homes the cursor so Clrscr
+    ; wipes the entire visible window from the top.
+    mov  dh, 0          ; row 0
+    mov  dl, 0          ; col 0
+    call Gotoxy
     call Clrscr
     call ShowSplash
 
@@ -404,6 +413,9 @@ ML_GameLoop:
     mov  g_inputLen, 0
 
     call PickSentence
+
+    ; clear screen before each round
+    call Clrscr
 
     ; --- show target sentence ---
     mov  edx, OFFSET msg_instrTop
@@ -473,6 +485,9 @@ ML_CntStart:
 
     ; --- compare ---
     call CompareStrings
+
+    ; clear screen before showing results
+    call Clrscr
 
     ; --- accuracy = (g_correct * 100) / g_sentLen ---
     mov  eax, g_correct
@@ -611,9 +626,12 @@ ML_FeedDone:
 ML_Exit:
     mov  eax, white
     call SetTextColor
+    call Clrscr
     mov  edx, OFFSET msg_bye
     call WriteString
-    call WaitMsg
+    ; Wait for a key then clear screen so CMD prompt appears clean
+    call ReadChar
+    call Clrscr
     exit
 
 main ENDP
